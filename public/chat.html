@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat em Tempo Real</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- estilo da pagina -->
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; }
+        #chat { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px gray; }
+        #messages { list-style: none; padding: 0; max-height: 300px; overflow-y: auto; }
+        #messages li { padding: 10px; margin: 5px 0; border-radius: 5px; background: #ddd; text-align: left; }
+        .username { font-weight: bold; cursor: pointer; }
+        input, select { width: 80%; padding: 10px; }
+        button { padding: 10px; }
+        #userList { margin-bottom: 25px;}
+    </style>
+</head>
+<body>
+    <!-- chat em tempo real -->
+    <h1>Chat em Tempo Real</h1>
+    <div id="chat">
+        <ul id="messages"></ul>
+        <select id="userList">
+            <option value="">Todos</option>
+        </select>
+        <input id="messageInput" type="text" placeholder="Digite uma mensagem..." />
+        <button onclick="sendMessage()">Enviar</button>
+    </div>
+<!-- script para enviar mensagens -->
+    <script>
+        const socket = io();
+        const username = localStorage.getItem("username");
+        let userColor = "#000";
+        // verifica se o usuário está logado
+        if (!username) {
+            window.location.href = "login.html";
+        } else {
+            socket.emit("set username", username);
+        }
+        //define a cor do usuário
+        socket.on("set color", (color) => {
+            userColor = color;
+        });
+        //função para enviar mensagens
+        function sendMessage() {
+            const input = document.getElementById("messageInput");
+            const recipient = document.getElementById("userList").value;
+
+            if (input.value.trim() !== "") {
+                socket.emit("chat message", { username, message: input.value, recipient: recipient || null });
+                input.value = "";
+            }
+        }
+        //envia mensagem ao pressionar Enter
+        document.getElementById("messageInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+        //recebe mensagens do servidor
+        socket.on("chat message", (data) => {
+            addMessage(data.username, data.message, data.color);
+        });
+
+        socket.on("private message", (data) => {
+            addMessage(`${data.username} (privado)`, data.message, data.color, true);
+        });
+
+        socket.on("previous messages", (messages) => {
+            messages.forEach(msg => addMessage(msg.username, msg.message, "#000"));
+        });
+        //atualiza a lista de usuários
+        socket.on("update users", (users) => {
+            const userList = document.getElementById("userList");
+            userList.innerHTML = '<option value="">Todos</option>';
+            users.forEach(user => {
+                if (user.name !== username) {
+                    const option = document.createElement("option");
+                    option.value = user.name;
+                    option.textContent = user.name;
+                    option.style.color = user.color;
+                    userList.appendChild(option);
+                }
+            });
+        });
+        //adiciona mensagem à lista
+        function addMessage(username, message, color, isPrivate = false) {
+            const messages = document.getElementById("messages");
+            const li = document.createElement("li");
+            if (isPrivate) li.style.background = "#ffef96";
+            li.innerHTML = `<span class="username" style="color: ${color}">${username}:</span> ${message}`;
+            messages.appendChild(li);
+            messages.scrollTop = messages.scrollHeight;
+        }
+    </script>
+
+</body>
+</html>
