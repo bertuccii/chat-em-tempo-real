@@ -117,5 +117,5 @@ io.on("connection", (socket) => {
 // 📌 Iniciar o Servidor
 const PORT = 3000;
 server.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+    console.log(`🚀 Chat rodando em http://localhost:${PORT}`);
 });
